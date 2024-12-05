@@ -1,0 +1,44 @@
+version: '3'
+services:
+
+  init:
+    container_name: init
+    image: busybox  
+    command: sh -c "echo 'Initializing...' && sleep 5 && echo 'Initialization complete'"
+    networks:
+      - bot_network
+
+  postgres:
+    container_name: db
+    restart: always
+    env_file: ".env"
+    image: postgres:17.2-alpine3.20
+    depends_on:
+      - init
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d $$POSTGRES_DB -U $$POSTGRES_USER"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - bot_network
+
+  app:
+    container_name: app
+    ports:
+    - "8080:8080"
+    env_file: ".env"
+    build:
+      dockerfile: Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["python3", "src/bot.py"]
+    networks:
+      - bot_network
+
+networks:
+  bot_network:
