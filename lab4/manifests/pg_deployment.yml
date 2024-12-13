@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      project: ocr
+      app: ocr_db
+  template:
+    metadata:
+      labels:
+        project: ocr
+        app: ocr_db
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:14
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5432
+          envFrom:
+            - configMapRef:
+                name: ocr-config
+          livenessProbe:
+            exec:
+              command:
+              - bash 
+              - "-c" 
+              - | 
+                pg_isready -d $POSTGRES_DB -U $POSTGRES_USER
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            exec:
+              command:
+              - bash 
+              - "-c" 
+              - | 
+                pg_isready -d $POSTGRES_DB -U $POSTGRES_USER
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: postgresdata
+              
+      volumes:
+        - name: postgresdata
+          persistentVolumeClaim:
+            claimName: postgres-volume-claim

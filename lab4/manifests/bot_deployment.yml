@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bot-deployment
+  labels:
+    project: ocr
+    app: ocr_bot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      project: ocr
+      app: ocr_bot
+  template:
+    metadata:
+      labels:
+        project: ocr
+        app: ocr_bot
+    spec:
+      initContainers:
+      - name: init-container
+        image: busybox
+        imagePullPolicy: IfNotPresent
+        command: ["/bin/sh"]
+        args: ["-c", "echo 'Initializing...' && sleep 5 && echo 'Initialization complete'"]
+
+      containers:
+      - name: app-container
+        image: app/bot:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8080
+        envFrom:
+          - configMapRef:
+              name: ocr-config
+        
